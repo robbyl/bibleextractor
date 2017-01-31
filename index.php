@@ -1,18 +1,50 @@
+
+<form action="" method="post">
+    <p>Import books <button name="books" value="books">Upload</button></p>
+    <p>Import verses <button name="verses" value="verses">Upload</button></p>
+
+</form>
+
 <?php
-
 error_reporting(E_ALL & ~E_NOTICE);
-
-class MyDB extends SQLite3 {
-
-    function __construct() {
-        $this->open('mysqlitedb.db');
-    }
-
-}
+include './simple_html_dom.php';
 
 $db = new MyDB();
-$db->exec("DROP TABLE IF EXISTS t_sw");
-$sql = 'CREATE TABLE "t_sw" (
+
+if (!empty($_POST['books'])) {
+
+    $db->exec("DROP TABLE IF EXISTS key_english");
+    $sql = 'CREATE TABLE "key_english" (
+  "b" integer PRIMARY KEY AUTOINCREMENT  NOT NULL,
+  "n" text NOT NULL
+)';
+
+    $verseQ = "";
+    $db->exec($sql);
+
+    echo "Importing books <br/>";
+
+    $html = file_get_html("C:/xampp/htdocs/biblesw/index.htm");
+
+    foreach ($html->find('ul') as $ul) {
+        foreach ($ul->find('a') as $li) {
+            $wacha = str_get_html($li);
+
+            $verseQ = $verseQ . "('{$wacha->plaintext}'),";
+        }
+    }
+
+    $build_books = "INSERT INTO key_english (n) VALUES " . substr(trim($verseQ), 0, -1);
+    
+    $db->exec($build_books);
+
+    echo "Import books finished";
+}
+
+if (!empty($_POST['verses'])) {
+
+    $db->exec("DROP TABLE IF EXISTS t_sw");
+    $sql = 'CREATE TABLE "t_sw" (
   "id" integer zerofill PRIMARY KEY NOT NULL,
   "b" integer NOT NULL,
   "c" integer NOT NULL,
@@ -20,18 +52,16 @@ $sql = 'CREATE TABLE "t_sw" (
   "t" text NOT NULL
 )';
 
-$db->exec($sql);
+    $db->exec($sql);
 
-include './simple_html_dom.php';
-
-$path = realpath('C:/xampp/htdocs/biblesw/sw');
+    echo "Import verses to SQLite db <br/>";
+    
+    $path = realpath('C:/xampp/htdocs/biblesw/sw');
 $iterator = new RecursiveDirectoryIterator($path);
 $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
 $objects = new RecursiveIteratorIterator($iterator);
 
 $part = "";
-
-echo "Importing to sqlite";
 
 foreach ($objects as $name) {
 
@@ -74,6 +104,16 @@ foreach ($objects as $name) {
 
 $build_query = "INSERT INTO t_sw (id, b, c, v, t) VALUES " . substr(trim($part), 0, -1);
 $db->exec($build_query);
+    
+    
+    echo "Importing verses finished";
+}
 
-echo "Finished importing";
+class MyDB extends SQLite3 {
+
+    function __construct() {
+        $this->open('bible_sw.db');
+    }
+
+}
 ?>
