@@ -3,6 +3,28 @@
 //error_reporting(E_ALL & ~E_NOTICE);
 error_reporting(0);
 
+
+class MyDB extends SQLite3 {
+
+    function __construct() {
+        $this->open('mysqlitedb.db');
+    }
+
+}
+
+$db = new MyDB();
+$db->exec("DROP TABLE verses");
+$sql = "CREATE TABLE `verses` (
+  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+  `bookId` INTEGER NULL,
+  `chapterId` INTEGER NULL,
+  `verse` INTEGER NULL,
+  `text` VARCHAR NULL)";
+
+$db->exec($sql);
+
+//exit;
+
 include './simple_html_dom.php';
 
 $path = realpath('C:/xampp/htdocs/bibleextractor/sw');
@@ -10,9 +32,17 @@ $iterator = new RecursiveDirectoryIterator($path);
 $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
 $objects = new RecursiveIteratorIterator($iterator);
 
-foreach ($objects as $name => $object) {
+foreach ($objects as $name) {
 
     echo $name . "<br/>";
+    
+    $exploded = explode('\\', $name);
+    
+    $book = $exploded[5];
+    $chapter_explode = explode(".", $exploded[6]);
+    $chapter = $chapter_explode[0];
+    
+    
     $html = file_get_html($name);
     $some = array();
 
@@ -29,11 +59,17 @@ foreach ($objects as $name => $object) {
 
             for ($index = 0; $index < count($final); $index++) {
                 echo ($index + 1) . " " . $final[$index] . "<br/>";
+//                $key = $index + 1;
+//                $part .= "({$book}, {$chapter}, {$key}, '{$final[$index]}'),";
             }
         }
     }
 
-    exit;
-}
+    echo '<br/>';
+//    $build_query = "INSERT INTO verses (bookId, chapterId, verse, text) VALUES " . substr(trim($part), 0, -1);
+//    $db->exec($build_query);
+//    echo $build_query;
 
+//    exit;
+}
 ?>
