@@ -29,16 +29,18 @@ if (!empty($_POST['books'])) {
     foreach ($html->find('ul') as $ul) {
         foreach ($ul->find('a') as $li) {
             $wacha = str_get_html($li);
-
-            $verseQ = $verseQ . "('{$wacha->plaintext}'),";
+            $trimed = trim($wacha->plaintext);
+            $verseQ = $verseQ . "('{$trimed}'),";
         }
     }
 
     $build_books = "INSERT INTO key_english (n) VALUES " . substr(trim($verseQ), 0, -1);
     
+    echo $build_books;
+    
     $db->exec($build_books);
 
-    echo "Import books finished";
+    echo "<br /> Import books finished";
 }
 
 if (!empty($_POST['verses'])) {
