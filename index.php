@@ -36,7 +36,7 @@ if (!empty($_POST['books'])) {
 
     $build_books = "INSERT INTO key_english (n) VALUES " . substr(trim($verseQ), 0, -1);
     
-    echo $build_books;
+//    echo $build_books;
     
     $db->exec($build_books);
 
@@ -95,12 +95,11 @@ foreach ($objects as $name) {
                 $chapter1 = str_pad($chapter, 3, "0", STR_PAD_LEFT);
                 $key1 = str_pad($key, 3, "0", STR_PAD_LEFT);
 
-                $part = $part . "({$book1}{$chapter1}{$key1},{$book}, {$chapter}, {$key}, \"{$final[$index]}\"),";
+                $trimed_verse = trim($final[$index]);
+                $part = $part . "({$book1}{$chapter1}{$key1},{$book}, {$chapter}, {$key}, \"{$trimed_verse}\"),";
             }
         }
-        ;
     }
-
 //    exit;
 }
 
