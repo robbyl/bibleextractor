@@ -2,6 +2,8 @@
 <form action="" method="post">
     <p>Import books <button name="books" value="books">Upload</button></p>
     <p>Import verses <button name="verses" value="verses">Upload</button></p>
+    <p>Import selected reading verse categories <button name="category" value="category">Upload</button></p>
+    <p>Import selected reading verses <button name="special_verses" value="special">Upload</button></p>
 
 </form>
 
@@ -35,9 +37,9 @@ if (!empty($_POST['books'])) {
     }
 
     $build_books = "INSERT INTO key_english (n) VALUES " . substr(trim($verseQ), 0, -1);
-    
+
 //    echo $build_books;
-    
+
     $db->exec($build_books);
 
     echo "<br /> Import books finished";
@@ -57,57 +59,142 @@ if (!empty($_POST['verses'])) {
     $db->exec($sql);
 
     echo "Import verses to SQLite db <br/>";
-    
+
     $path = realpath('C:/xampp/htdocs/biblesw/sw');
-$iterator = new RecursiveDirectoryIterator($path);
-$iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
-$objects = new RecursiveIteratorIterator($iterator);
+    $iterator = new RecursiveDirectoryIterator($path);
+    $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
+    $objects = new RecursiveIteratorIterator($iterator);
 
-$part = "";
+    $part = "";
 
-foreach ($objects as $name) {
+    foreach ($objects as $name) {
 
 //    echo $name . "<br/>";
 
-    $exploded = explode('\\', $name);
+        $exploded = explode('\\', $name);
 
-    $book = $exploded[5];
-    $chapter_explode = explode(".", $exploded[6]);
-    $chapter = $chapter_explode[0];
+        $book = $exploded[5];
+        $chapter_explode = explode(".", $exploded[6]);
+        $chapter = $chapter_explode[0];
 
-    $html = file_get_html($name);
+        $html = file_get_html($name);
 
-    foreach ($html->find('span,h3,a,.textAudio,.textHeader,.ym-wbox,.alignCenter,.ym-noprint') as $removed) {
-        $removed->outertext = '';
-    }
+        // remove unwanted html tags
+        foreach ($html->find('span,h3,a,.textAudio,.textHeader,.ym-wbox,.alignCenter,.ym-noprint') as $removed) {
+            $removed->outertext = '';
+        }
 
-    foreach ($html->find('p', 1) as $element) {
+        foreach ($html->find('p', 1) as $element) {
 
-        $some = str_get_html($element->innertext);
+            $some = str_get_html($element->innertext);
 
-        if (!empty($some)) {
-            $final = explode(PHP_EOL, trim($some->plaintext));
+            if (!empty($some)) {
+                $final = explode(PHP_EOL, trim($some->plaintext));
 
-            for ($index = 0; $index < count($final); $index++) {
+                for ($index = 0; $index < count($final); $index++) {
 //                echo ($index + 1) . " " . $final[$index] . "<br/>";
-                $key = $index + 1;
-                $book1 = str_pad($book, 2, "0", STR_PAD_LEFT);
-                $chapter1 = str_pad($chapter, 3, "0", STR_PAD_LEFT);
-                $key1 = str_pad($key, 3, "0", STR_PAD_LEFT);
+                    $key = $index + 1;
+                    $book1 = str_pad($book, 2, "0", STR_PAD_LEFT);
+                    $chapter1 = str_pad($chapter, 3, "0", STR_PAD_LEFT);
+                    $key1 = str_pad($key, 3, "0", STR_PAD_LEFT);
 
-                $trimed_verse = trim($final[$index]);
-                $part = $part . "({$book1}{$chapter1}{$key1},{$book}, {$chapter}, {$key}, \"{$trimed_verse}\"),";
+                    $trimed_verse = trim($final[$index]);
+                    $part = $part . "({$book1}{$chapter1}{$key1},{$book}, {$chapter}, {$key}, \"{$trimed_verse}\"),";
+                }
             }
         }
-    }
 //    exit;
+    }
+
+    $build_query = "INSERT INTO t_sw (id, b, c, v, t) VALUES " . substr(trim($part), 0, -1);
+    $db->exec($build_query);
+
+
+    echo "Importing verses finished";
 }
 
-$build_query = "INSERT INTO t_sw (id, b, c, v, t) VALUES " . substr(trim($part), 0, -1);
-$db->exec($build_query);
+if (!empty($_POST['category'])) {
+    echo 'Uploading special verses category';
+    echo '<br/>';
+
+    $db->exec("DROP TABLE IF EXISTS special_verses_category");
+
+    $sql = 'CREATE TABLE "special_verses_category" (
+         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+         "category" TEXT
+         )';
+
+    $db->exec($sql);
+
+    $html = file_get_html("C:/xampp/htdocs/biblesw/bibles/verses/swahili/index.htm");
+
+    $categoryText = "";
+
+    foreach ($html->find('ul.nav-tabs a') as $category) {
+        $category = str_get_html($category->innertext); //removing a tag
+        $category = end(explode('] ', $category));
+        $categoryText = $categoryText . "('{$category}'),";
+    }
     
-    
-    echo "Importing verses finished";
+    $build_categories = "INSERT INTO special_verses_category (category) VALUES " . substr(trim($categoryText), 0, -1);
+//
+//    echo $build_categories;
+//    exit;
+
+    $db->exec($build_categories);
+
+    echo "Finished loading categories";
+}
+
+if (!empty($_POST['special_verses'])) {
+    echo 'Uploading special verses <br/>';
+
+    $db->exec("DROP TABLE IF EXISTS special_verses");
+    $sql = 'CREATE TABLE "special_verses" (
+         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+         "verse_category_id" INTEGER NOT NULL,
+         "verse_no" TEXT NOT NULL,
+         "verse_text" TEXT NOT NULL
+         )';
+
+    $db->exec($sql);
+
+    $path = realpath('C:/xampp/htdocs/biblesw/bibles/verses/swahili');
+    $iterator = new RecursiveDirectoryIterator($path);
+    $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
+    $objects = new RecursiveIteratorIterator($iterator);
+
+    $verse_category = 1;
+    $verseText = "";
+
+    foreach ($objects as $name) {
+
+        $html = file_get_html($name);
+        $trimed = "";
+
+        foreach ($html->find('ul.shadetabs li') as $element) {
+            $some = str_get_html($element->innertext); //removing li tag
+            $verse_no = $element->find('a', 0)->innertext;
+            $verses = explode('<', $some);
+            $trimed = SQLite3::escapeString(trim($verses[0]));
+
+            if (!empty($trimed)) {
+                $verseText = $verseText . '(' . $verse_category . ',"' . $verse_no . '","' . $trimed . '"),';
+            }
+        }
+
+        if (!empty($trimed)) {
+            $verse_category++;
+        }
+    }
+
+    $build_special_verses = "INSERT INTO special_verses (verse_category_id, verse_no, verse_text)"
+            . " VALUES " . substr(trim($verseText), 0, -1);
+//    echo $build_special_verses;
+//    exit;
+    $db->exec($build_special_verses);
+
+    echo "Finished importing special verses";
 }
 
 class MyDB extends SQLite3 {
