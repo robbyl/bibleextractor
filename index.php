@@ -135,7 +135,7 @@ if (!empty($_POST['category'])) {
         $category = end(explode('] ', $category));
         $categoryText = $categoryText . "('{$category}'),";
     }
-    
+
     $build_categories = "INSERT INTO special_verses_category (category) VALUES " . substr(trim($categoryText), 0, -1);
 //
 //    echo $build_categories;
@@ -175,6 +175,11 @@ if (!empty($_POST['special_verses'])) {
         foreach ($html->find('ul.shadetabs li') as $element) {
             $some = str_get_html($element->innertext); //removing li tag
             $verse_no = $element->find('a', 0)->innertext;
+
+            $explode = explode(":", $verse_no);
+            $first_explode = first($explode);
+            $last_explode = last($explode);
+
             $verses = explode('<', $some);
             $trimed = SQLite3::escapeString(trim($verses[0]));
 
