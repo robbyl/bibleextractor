@@ -159,7 +159,7 @@ if (!empty($_POST['special_verses'])) {
 
     $db->exec($sql);
 
-    $path = realpath('C:/xampp/htdocs/biblesw/bibles/verses/swahili');
+    $path = realpath('C:/xampp/htdocs/bibleextractor/bibles/verses/swahili');
     $iterator = new RecursiveDirectoryIterator($path);
     $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
     $objects = new RecursiveIteratorIterator($iterator);
@@ -177,8 +177,17 @@ if (!empty($_POST['special_verses'])) {
             $verse_no = $element->find('a', 0)->innertext;
 
             $explode = explode(":", $verse_no);
-            $first_explode = first($explode);
-            $last_explode = last($explode);
+            $first_explode = $explode[0];
+            $last_explode = end($explode);
+            $explode_first = explode(" ", $first_explode);
+            $chapter_no = array_pop($explode_first);
+            $slitted = preg_split("/ (,|-) /", $last_explode);
+            $verse_no = $slitted[0];
+            $book_name = implode(" ", $explode_first);
+            
+            echo $book_name . " " . $chapter_no . ":" . $verse_no;
+            
+            echo '<br/>';
 
             $verses = explode('<', $some);
             $trimed = SQLite3::escapeString(trim($verses[0]));
