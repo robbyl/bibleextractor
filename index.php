@@ -197,10 +197,6 @@ if (!empty($_POST['special_verses'])) {
             $verse_no2 = str_pad($verse_no2, 3, "0", STR_PAD_LEFT);
             $verse_id = "{$book_no}{$chapter_no}{$verse_no2}";
 
-            echo "Book id " . $result_array[0] . " " . $book_name . " " . $chapter_no . ":" . $verse_no2 . " from " . $last_explode;
-
-            echo '<br/>';
-
             $verses = explode('<', $some);
             $trimed = SQLite3::escapeString(trim($verses[0]));
 
