@@ -152,6 +152,7 @@ if (!empty($_POST['special_verses'])) {
     $db->exec("DROP TABLE IF EXISTS special_verses");
     $sql = 'CREATE TABLE "special_verses" (
          "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+         "verse_id" INTEGER ZEROFILL NOT NULL,
          "verse_category_id" INTEGER NOT NULL,
          "verse_no" TEXT NOT NULL,
          "verse_text" TEXT NOT NULL
@@ -159,7 +160,7 @@ if (!empty($_POST['special_verses'])) {
 
     $db->exec($sql);
 
-    $path = realpath('C:/xampp/htdocs/bibleextractor/bibles/verses/swahili');
+    $path = realpath('C:/xampp/htdocs/biblesw/bibles/verses/swahili');
     $iterator = new RecursiveDirectoryIterator($path);
     $iterator->setFlags(RecursiveDirectoryIterator::SKIP_DOTS);
     $objects = new RecursiveIteratorIterator($iterator);
@@ -181,19 +182,30 @@ if (!empty($_POST['special_verses'])) {
             $last_explode = end($explode);
             $explode_first = explode(" ", $first_explode);
             $chapter_no = array_pop($explode_first);
-            $slitted = preg_split("/ (,|-) /", $last_explode);
-            $verse_no = $slitted[0];
+            $slitted = multiexplode(array(',', '-'), $last_explode);
+
+            $verse_no2 = $slitted[0];
             $book_name = implode(" ", $explode_first);
-            
-            echo $book_name . " " . $chapter_no . ":" . $verse_no;
-            
+            $book_name = trim($book_name);
+
+            $result = $db->query("SELECT b FROM key_english WHERE n = '{$book_name}' LIMIT 1");
+            $result_array = $result->fetchArray();
+            $book_no = $result_array[0];
+
+            $book_no = str_pad($book_no, 2, "0", STR_PAD_LEFT);
+            $chapter_no = str_pad($chapter_no, 3, "0", STR_PAD_LEFT);
+            $verse_no2 = str_pad($verse_no2, 3, "0", STR_PAD_LEFT);
+            $verse_id = "{$book_no}{$chapter_no}{$verse_no2}";
+
+            echo "Book id " . $result_array[0] . " " . $book_name . " " . $chapter_no . ":" . $verse_no2 . " from " . $last_explode;
+
             echo '<br/>';
 
             $verses = explode('<', $some);
             $trimed = SQLite3::escapeString(trim($verses[0]));
 
             if (!empty($trimed)) {
-                $verseText = $verseText . '(' . $verse_category . ',"' . $verse_no . '","' . $trimed . '"),';
+                $verseText = $verseText . '(' . $verse_category . ',"' . $verse_id . '","' . $verse_no . '","' . $trimed . '"),';
             }
         }
 
@@ -202,7 +214,7 @@ if (!empty($_POST['special_verses'])) {
         }
     }
 
-    $build_special_verses = "INSERT INTO special_verses (verse_category_id, verse_no, verse_text)"
+    $build_special_verses = "INSERT INTO special_verses (verse_category_id, verse_id, verse_no, verse_text)"
             . " VALUES " . substr(trim($verseText), 0, -1);
 //    echo $build_special_verses;
 //    exit;
@@ -217,5 +229,12 @@ class MyDB extends SQLite3 {
         $this->open('bible_sw.db');
     }
 
+}
+
+function multiexplode($delimiters, $string) {
+
+    $ready = str_replace($delimiters, $delimiters[0], $string);
+    $launch = explode($delimiters[0], $ready);
+    return $launch;
 }
 ?>
